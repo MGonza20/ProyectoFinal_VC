@@ -25,11 +25,13 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 		ret, frame = cap.read()
 		if not ret:
 			break
-		# 3. Process the frame
-		# 4. Detect the ball
-		# 5. Detect the court
-		# 6. Detect the people
-		# 7. Out the frame
+		
+		# ===== FRAME PROCESSING =====
+		
+		# Detect the ball
+		# Detect the court
+		# Detect the people
+		# Out the frame
 		out.write(frame)
 
 	cap.release()
