@@ -34,8 +34,14 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 		# Detect the court
 		if court_detector is not None:
 			court_lines = court_detector.detect(frame)
-			for line in court_lines: cv2.line(frame, line[0], line[1], (255, 0, 0), 2)
+			for indx in range(0, len(court_lines), 2):
 
+				x = int(court_lines[indx])
+				y = int(court_lines[indx+1])
+
+				cv2.putText(frame, str(indx//2), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+				cv2.circle(frame, (x,y), 5, (0, 0, 255), -1)
+				
 		# Detect the people
 
 		# Display the frame
