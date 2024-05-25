@@ -3,6 +3,7 @@ import cv2
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 
 class CourtDetector:
     def __init__(self, model_path):
@@ -29,5 +30,10 @@ class CourtDetector:
 
         keypoints[::2] *= original_w/224.0
         keypoints[1::2] *= original_h/224.0
+
+        # # show frame with keypoints using matplotlib
+        # plt.imshow(frame)
+        # plt.scatter(keypoints[::2], keypoints[1::2], c='r', s=10)
+        # plt.show()
 
         return keypoints
