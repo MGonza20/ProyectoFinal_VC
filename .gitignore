@@ -7,3 +7,4 @@ data/raw/court/prep/data_train.json
 data/raw/court/prep/data_val.json
 
 yolov8x.pt
+last.pt
