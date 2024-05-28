@@ -9,4 +9,3 @@ data/
             data_train.json
             data_val.json
 yolov8x.pt
-last.pt

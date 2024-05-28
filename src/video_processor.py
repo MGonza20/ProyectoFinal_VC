@@ -28,9 +28,7 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 		if not ret: break
 		
 		# ===== FRAME PROCESSING =====
-		
-		# Detect the ball
-		ball_results = ball_detector.results(frame)
+
 		
 		# Detect the court
 		if court_detector is not None:
@@ -43,6 +41,8 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 				cv2.putText(frame, str(indx//2), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 				cv2.circle(frame, (x,y), 5, (0, 0, 255), -1)
 				
+		# Detect the ball
+		ball_results = ball_detector.results(frame)
 		# Detect the people
 		results = people_detector.detect(frame)
 		# Result is a dict of track_id: box
@@ -76,5 +76,5 @@ def draw_player_box(frame, id, box):
 
 def draw_ball_box(frame, box):
 	x1, y1, x2, y2 = box
-	cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+	cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
 	return frame
