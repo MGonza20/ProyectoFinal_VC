@@ -5,6 +5,6 @@ __pycache__/
 data/raw/court/prep/images/
 data/raw/court/prep/data_train.json
 data/raw/court/prep/data_val.json
-
+data/raw/videos/
 yolov8x.pt
 last.pt
