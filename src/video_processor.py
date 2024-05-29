@@ -14,57 +14,61 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 	video_path = f'data/raw/videos/{match_name}.mp4'
 	output_video_path = f'output/videos/{match_name}.mp4'
 	cap = cv2.VideoCapture(video_path)
-
 	# Out Video Configuration
 	fps = int(cap.get(cv2.CAP_PROP_FPS))
 	frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 	frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 	fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 	out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
-	count_frame = 0
-	# 2. Process the video into frames
-	while True:
-		ret, frame = cap.read()
-		if not ret: break
-		
-		# ===== FRAME PROCESSING =====
-
-		
-		# Detect the court
+	# Frames
+	frames = read_frames(cap)
+	# Detect the players
+	player_detections = people_detector.detect_frames(frames, stub_path=f'output/stubs/players-{match_name}.pkl')
+	# Detect ball
+	ball_detections = ball_detector.detect_frames(frames, stub_path=f'output/stubs/balls-{match_name}.pkl')
+	# Detect the court
+	if court_detector is not None:
+		court_lines = court_detector.detect_frames(frames, stub_path=f'output/stubs/court-{match_name}.pkl')
+	# Draw the court
+	for i, frame in enumerate(frames):
 		if court_detector is not None:
-			court_lines = court_detector.detect(frame)
-			for indx in range(0, len(court_lines), 2):
-
-				x = int(court_lines[indx])
-				y = int(court_lines[indx+1])
-
+			for indx in range(0, len(court_lines[i]), 2):
+				x = int(court_lines[i][indx])
+				y = int(court_lines[i][indx+1])
 				cv2.putText(frame, str(indx//2), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 				cv2.circle(frame, (x,y), 5, (0, 0, 255), -1)
-				
-		# Detect the ball
-		ball_results = ball_detector.results(frame)
-		# Detect the people
-		results = people_detector.detect(frame)
-		# Result is a dict of track_id: box
-		for track_id, box in results.items():
+	# Draw the boxes
+	for i, frame in enumerate(frames):
+		# Draw the players
+		for track_id, box in player_detections[i].items():
 			frame = draw_player_box(frame, track_id, box)
-		if 0 in ball_results:
-			frame = draw_ball_box(frame, ball_results[0])
-
+		# Draw the ball
+		if 0 in ball_detections[i]:
+			frame = draw_ball_box(frame, ball_detections[i][0])
 		# Display the frame
 		cv2.imshow('Processed Frame', frame)
 		if cv2.waitKey(1) & 0xFF == ord('q'): break
-
 		# Out the frame
 		out.write(frame)
-		count_frame += 1
-		if count_frame == 3000:
-			print(f'Processed {count_frame} frames')
-			break
 
 	cap.release()
 	out.release()
-	cv2.destroyAllWindows()
+
+
+def read_frames(cap):
+	'''
+	Read the frames of a video
+	Parameters:
+		cap: The video capture object
+	Returns:
+		frames: A list of frames
+	'''
+	frames = []
+	while True:
+		ret, frame = cap.read()
+		if not ret: break
+		frames.append(frame)
+	return frames
 
 def draw_player_box(frame, id, box):
 	# box is a list of x,y,x,y
