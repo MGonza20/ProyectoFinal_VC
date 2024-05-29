@@ -10,5 +10,5 @@ yolov8x.pt
 last.pt
 keypoints_model.pth
 
-models/
+models/tennis_ball/*
 
