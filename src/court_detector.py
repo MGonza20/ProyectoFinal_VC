@@ -5,6 +5,8 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import pickle
+from src.kps_postprocessing import fix_keypoints
+
 class CourtDetector:
 		def __init__(self, model_path):
 				self.model = models.resnet50(pretrained=False)
@@ -44,10 +46,6 @@ class CourtDetector:
 
 				keypoints[::2] *= original_w/224.0
 				keypoints[1::2] *= original_h/224.0
-
-				# # show frame with keypoints using matplotlib
-				# plt.imshow(frame)
-				# plt.scatter(keypoints[::2], keypoints[1::2], c='r', s=10)
-				# plt.show()
-
+				keypoints = fix_keypoints(keypoints, frame)
+                
 				return keypoints
