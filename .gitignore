@@ -8,3 +8,7 @@ data/raw/court/prep/data_val.json
 data/raw/videos/
 yolov8x.pt
 last.pt
+keypoints_model.pth
+
+models/
+

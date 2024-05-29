@@ -1,5 +1,6 @@
 import pickle
 from ultralytics import YOLO
+from src.utils import euclidean_distance, get_box_center
 
 class PlayerDetector:
 		def __init__(self, model_path):
@@ -48,12 +49,11 @@ class PlayerDetector:
 			first_frame_players = player_positions[0]
 			players_dict = {} # key: track_id, value: shortest distance to the court
 			for player_id, player_box in first_frame_players.items():
-				x1, y1, x2, y2 = player_box
-				player_center = ((x2 + x1) / 2, (y2 + y1) / 2)
+				player_center = get_box_center(player_box)
 				min_distance = float('inf')
 				for i in range(0, len(first_frame_court_detections), 2):
 					court_point = (first_frame_court_detections[i], first_frame_court_detections[i+1])
-					distance = self.euclidean_distance(player_center, court_point)
+					distance = euclidean_distance(player_center, court_point)
 					if distance < min_distance:
 						min_distance = distance
 			
@@ -65,8 +65,3 @@ class PlayerDetector:
 			for player_dict in player_positions:
 				filtered_players.append({player_id: player_dict[player_id] for player_id in first_two_players})
 			return filtered_players
-
-		def euclidean_distance(self, point1, point2):
-			x1, y1 = point1
-			x2, y2 = point2
-			return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
