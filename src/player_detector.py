@@ -41,4 +41,32 @@ class PlayerDetector:
 				if object_cls_name == 'person':
 					player_dict[track_id] = result
 			return player_dict
+		
+		def filter_players(self, player_positions, court_detections):
+			filtered_players = []
+			first_frame_court_detections = court_detections[0]
+			first_frame_players = player_positions[0]
+			players_dict = {} # key: track_id, value: shortest distance to the court
+			for player_id, player_box in first_frame_players.items():
+				x1, y1, x2, y2 = player_box
+				player_center = ((x2 + x1) / 2, (y2 + y1) / 2)
+				min_distance = float('inf')
+				for i in range(0, len(first_frame_court_detections), 2):
+					court_point = (first_frame_court_detections[i], first_frame_court_detections[i+1])
+					distance = self.euclidean_distance(player_center, court_point)
+					if distance < min_distance:
+						min_distance = distance
 			
+				players_dict[player_id] = min_distance
+			
+			# Return the first two players
+			players_dict = dict(sorted(players_dict.items(), key=lambda item: item[1]))
+			first_two_players = list(players_dict.keys())[:2]
+			for player_dict in player_positions:
+				filtered_players.append({player_id: player_dict[player_id] for player_id in first_two_players})
+			return filtered_players
+
+		def euclidean_distance(self, point1, point2):
+			x1, y1 = point1
+			x2, y2 = point2
+			return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5

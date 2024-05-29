@@ -22,13 +22,17 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 	out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 	# Frames
 	frames = read_frames(cap)
-	# Detect the players
-	player_detections = people_detector.detect_frames(frames, stub_path=f'output/stubs/players-{match_name}.pkl')
+
 	# Detect ball
 	ball_detections = ball_detector.detect_frames(frames, stub_path=f'output/stubs/balls-{match_name}.pkl')
 	# Detect the court
 	if court_detector is not None:
 		court_lines = court_detector.detect_frames(frames, stub_path=f'output/stubs/court-{match_name}.pkl')
+		# ===== AQUI CORRECCION ======
+		# ===== AQUI CORRECCION ======
+		# Detect the players
+	player_detections = people_detector.detect_frames(frames, stub_path=f'output/stubs/players-{match_name}.pkl')
+	player_detections = people_detector.filter_players(player_detections, court_lines)
 	# Draw the court
 	for i, frame in enumerate(frames):
 		if court_detector is not None:

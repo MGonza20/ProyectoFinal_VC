@@ -1,5 +1,5 @@
 venv/
-output/
+output/videos
 __pycache__/
 
 data/raw/court/prep/images/
