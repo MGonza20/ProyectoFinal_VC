@@ -12,7 +12,7 @@ if __name__ == '__main__':
 	# 2. Process the video into frames
 	player_detector = PlayerDetector('yolov8x')
 	ball_detector = TennisBallDetector('models/tennis_ball/last.pt')
-	court_detector = CourtDetector('models/keypoints_model.pth')
+	court_detector = CourtDetector('models/court/keypoints_model.pth')
 
 	process_video(match_name, people_detector=player_detector, ball_detector=ball_detector, court_detector=court_detector)
 	
