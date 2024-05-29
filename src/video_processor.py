@@ -1,5 +1,5 @@
 import cv2
-
+from src.minicourt import MiniCourt
 
 def process_video(match_name='match01', ball_detector=None,court_detector=None,people_detector=None):
 	'''
@@ -34,6 +34,16 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 		# Detect the players
 	player_detections = people_detector.detect_frames(frames, stub_path=f'output/stubs/players-{match_name}.pkl')
 	player_detections = people_detector.filter_players(player_detections, court_lines)
+
+	# Court drawing
+	mini_court = MiniCourt(frame=frames[0])
+	
+	frames = mini_court.draw_mini_court(frames, ball_detections, court_lines)
+
+	# Draw frame number on top left
+	for i, frame in enumerate(frames):
+		cv2.putText(frame, f'Frame: {i}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
 	# Draw the court
 	for i, frame in enumerate(frames):
 		if court_detector is not None:
