@@ -22,7 +22,7 @@ def process_video(match_name='match01', ball_detector=None,court_detector=None,p
 	fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 	out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 	# Frames
-	frames = read_frames(cap)
+	frames = read_frames(cap) 
 
 	# Detect ball
 	ball_detections = ball_detector.detect_frames(frames, stub_path=f'output/stubs/balls-{match_name}.pkl')
