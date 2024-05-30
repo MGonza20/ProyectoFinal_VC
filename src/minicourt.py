@@ -1,3 +1,4 @@
+from scipy.signal import find_peaks
 import cv2
 import numpy as np
 from src.utils import convert_meters_distance_to_pixels, convert_pixels_distance_to_meters, get_box_height, get_box_center, euclidean_distance, get_box_bottom_center
@@ -30,7 +31,7 @@ class MiniCourt:
 		self.court_drawing_height = self.court_end_y - self.court_start_y
 
 	def set_court_drawing_key_points(self):
-		drawing_key_points = [0]*28 # List of 14 points 
+		drawing_key_points = [0]*32 # List of 14 points 
 		# Point 0
 		drawing_key_points[0], drawing_key_points[1] = int(self.court_start_x), int(self.court_start_y)
 		# Point 1
@@ -71,6 +72,12 @@ class MiniCourt:
 		# Point 13
 		drawing_key_points[26] = drawing_key_points[18] - self.convert_meters_to_pixels(SINGLE_LINE_WIDTH/2)
 		drawing_key_points[27] = drawing_key_points[21]
+		# Point 14 - Between point 5 and 7
+		drawing_key_points[28] = drawing_key_points[4] + (drawing_key_points[6] - drawing_key_points[4]) / 2
+		drawing_key_points[29] = drawing_key_points[5]
+		# Point 15 - Between point 4 and 6
+		drawing_key_points[30] = drawing_key_points[8] + (drawing_key_points[12] - drawing_key_points[8]) / 2
+		drawing_key_points[31] = drawing_key_points[9]
 		self.court_drawing_key_points = drawing_key_points
 	
 	def set_court_drawing_line_points(self):
@@ -180,6 +187,28 @@ class MiniCourt:
 
 	
 	def draw_players_in_mini_court(self, frame, player_detections, keypoint_detections):
+		# Add a point between point 5 and 7
+		point_5_x = keypoint_detections[10]
+		point_5_y = keypoint_detections[11]
+		point_7_x = keypoint_detections[14]
+
+		# Add a point between point 4 and 6
+		point_4_x = keypoint_detections[8]
+		point_4_y = keypoint_detections[9]
+		point_6_x = keypoint_detections[12]
+
+
+		# Extend keypoint detection
+		keypoint_detections = keypoint_detections.copy()
+		keypoint_detections.extend([point_5_x + (point_7_x - point_5_x) / 2, point_5_y])
+		keypoint_detections.extend([point_4_x + (point_6_x - point_4_x) / 2, point_4_y])
+
+
+
+		# Draw a black point on new keypoint
+		cv2.circle(frame, (int(keypoint_detections[-2]), int(keypoint_detections[-1])), 5, (0, 0, 0), -1)
+		cv2.circle(frame, (int(keypoint_detections[-4]), int(keypoint_detections[-3])), 5, (0, 0, 0), -1)
+
 		player_1_box = player_detections[1]
 		player_2_box = player_detections[2]
 		player_1_bottom_center = get_box_bottom_center(player_1_box)
@@ -196,7 +225,6 @@ class MiniCourt:
 		frame = self.draw_lines_between_points(frame, player_1_bottom_center, (keypoint_detections[closest_keypoint_1], keypoint_detections[closest_keypoint_1+1]))
 		frame = self.draw_lines_between_points(frame, player_2_bottom_center, (keypoint_detections[closest_keypoint_2], keypoint_detections[closest_keypoint_2+1]))
 		# Draw the players in the mini court
-
 		# Player 1
 		player_1_bottom_center_x = int(player_1_bottom_center[0])
 		player_1_bottom_center_y = int(player_1_bottom_center[1])
@@ -250,4 +278,33 @@ class MiniCourt:
 			output_frames.append(frame)
 		return output_frames
 
+	def draw_ball_hits(self, frames, ball_positions):
+		# Get ball hits
+		hit_counts = self.detect_ball_hits(ball_positions)
+		# Draw a text with the number of hits after self endFrame
+		output_frames = []
+		for i, frame in enumerate(frames):
+			if i >= len(hit_counts):
+				break
+			cv2.putText(frame, 'Hits: {}'.format(int(hit_counts[i])), (self.start_x + 10, self.end_y + 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 5)
+			output_frames.append(frame)
+		return output_frames
 
+	def detect_ball_hits(self, ball_positions):
+		ball_positions = np.array([ball[0][1] for ball in ball_positions if ball])
+		# Parameters
+		min_distance = 50  # Minimum number of frames between peaks
+		# Find peaks
+		peaks, _ = find_peaks(ball_positions, distance=min_distance)
+		# Find valleys by inverting the data
+		valleys, _ = find_peaks(-ball_positions, distance=min_distance)
+		hit_frames = np.concatenate((peaks, valleys))
+		hit_counts = np.zeros(len(ball_positions))
+		total_hits = 0
+		for i in range(0, len(ball_positions)):
+				if i in hit_frames:
+						hit_counts[i] = total_hits + 1
+						total_hits += 1
+				else:
+						hit_counts[i] = total_hits
+		return hit_counts

@@ -7,7 +7,7 @@ from src.court_detector import CourtDetector
 if __name__ == '__main__':
 	
 	# 1. Open Video To Process
-	match_name = 'match01'
+	match_name = 'match06'
 
 	# 2. Process the video into frames
 	player_detector = PlayerDetector('yolov8x')
