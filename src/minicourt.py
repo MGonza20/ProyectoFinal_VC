@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from src.utils import convert_meters_distance_to_pixels, convert_pixels_distance_to_meters, get_box_height, get_box_center, euclidean_distance
-from src.constants import HALF_COURT_HEIGHT, COURT_WIDTH,DOUBLES_ALLEY, NO_MANS_LAND, SINGLE_LINE_WIDTH, BALL_HEIGHT
+from src.utils import convert_meters_distance_to_pixels, convert_pixels_distance_to_meters, get_box_height, get_box_center, euclidean_distance, get_box_bottom_center
+from src.constants import HALF_COURT_HEIGHT, COURT_WIDTH,DOUBLES_ALLEY, NO_MANS_LAND, SINGLE_LINE_WIDTH, BALL_HEIGHT, PLAYER_1_HEIGHT, PLAYER_2_HEIGHT
 class MiniCourt:	
 	def __init__(self, frame):
 		self.drawing_rectangle_width =	250
@@ -150,35 +150,104 @@ class MiniCourt:
 			cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 0), 2)
 		cv2.line(frame, (int(self.net_drawing_points[0]), int(self.net_drawing_points[1])), (int(self.net_drawing_points[2]), int(self.net_drawing_points[3])), (255, 0, 0), 2)
 		return frame
+	
 	def draw_ball_in_mini_court(self, frame, ball_detection, keypoint_detection):
 		if 0 in ball_detection:
 			ball_height_pixels = get_box_height(ball_detection[0])
 			ball_center = get_box_center(ball_detection[0])
 			# Find closest keypoint index
-			closest_keypoint = None
-			closest_distance = 100000
-			for i in range(0, len(keypoint_detection), 2):
-				x = keypoint_detection[i]
-				y = keypoint_detection[i+1]
-				distance = euclidean_distance((x, y), ball_center)
-				if distance < closest_distance:
-					closest_distance = distance
-					closest_keypoint = i
-			key_point_index = closest_keypoint // 2
-			drawing_key_point_x = self.court_drawing_key_points[key_point_index]
-			drawing_key_point_y = self.court_drawing_key_points[key_point_index+1]
+			closest_keypoint = self.get_closest_keypoint(ball_center, keypoint_detection)
 
-			# Draw a blue circle on the keypoint
-			cv2.circle(frame, (int(drawing_key_point_x), int(drawing_key_point_y)), 5, (255, 0, 0), -1)
-			
+			if closest_keypoint is not None:
+				closest_x = int(keypoint_detection[closest_keypoint])
+				closest_y = int(keypoint_detection[closest_keypoint+1])
+				# Draw a line between the ball and the closest keypoint
+				frame = self.draw_lines_between_points(frame, ball_center, (closest_x, closest_y))
+				ball_center_x = int(ball_center[0])
+				ball_center_y = int(ball_center[1])
+				# Find closest keypoint index in the court drawing
+				closest_minicourt_x = self.court_drawing_key_points[closest_keypoint]
+				closest_minicourt_y = self.court_drawing_key_points[closest_keypoint+1]
+				cv2.circle(frame, (int(closest_minicourt_x), int(closest_minicourt_y)), 5, (0, 255, 0), -1)
+				# Draw the ball in the mini court
+				distance_to_closest_x_meters = convert_pixels_distance_to_meters(ball_center_x - closest_x, BALL_HEIGHT, ball_height_pixels)
+				distance_to_closest_y_meters = convert_pixels_distance_to_meters(ball_center_y - closest_y, BALL_HEIGHT, ball_height_pixels)
+				ball_center_minicourt_x = int(closest_minicourt_x + self.convert_meters_to_pixels(distance_to_closest_x_meters))
+				ball_center_minicourt_y = int(closest_minicourt_y + self.convert_meters_to_pixels(distance_to_closest_y_meters))
+				cv2.circle(frame, (ball_center_minicourt_x, ball_center_minicourt_y), 5, (0, 255, 0), -1)
 		return frame
+	
 
 	
-	def draw_mini_court(self, frames, ball_detections, key_points):
+	def draw_players_in_mini_court(self, frame, player_detections, keypoint_detections):
+		player_1_box = player_detections[1]
+		player_2_box = player_detections[2]
+		player_1_bottom_center = get_box_bottom_center(player_1_box)
+		player_2_bottom_center = get_box_bottom_center(player_2_box)
+
+		# Draw red point for player 1 and player 2
+		cv2.circle(frame, (int(player_1_bottom_center[0]), int(player_1_bottom_center[1])), 5, (0, 0, 255), -1)
+		cv2.circle(frame, (int(player_2_bottom_center[0]), int(player_2_bottom_center[1])), 5, (0, 0, 255), -1)
+		# Player 1 closest keypoint
+		closest_keypoint_1 = self.get_closest_keypoint(player_1_bottom_center, keypoint_detections)
+		# Player 2 closest keypoint
+		closest_keypoint_2 = self.get_closest_keypoint(player_2_bottom_center, keypoint_detections)
+		# Paint the keypoint in green
+		frame = self.draw_lines_between_points(frame, player_1_bottom_center, (keypoint_detections[closest_keypoint_1], keypoint_detections[closest_keypoint_1+1]))
+		frame = self.draw_lines_between_points(frame, player_2_bottom_center, (keypoint_detections[closest_keypoint_2], keypoint_detections[closest_keypoint_2+1]))
+		# Draw the players in the mini court
+
+		# Player 1
+		player_1_bottom_center_x = int(player_1_bottom_center[0])
+		player_1_bottom_center_y = int(player_1_bottom_center[1])
+		closest_minicourt_x_1 = self.court_drawing_key_points[closest_keypoint_1]
+		closest_minicourt_y_1 = self.court_drawing_key_points[closest_keypoint_1+1]
+		distance_to_closest_x_meters_1 = convert_pixels_distance_to_meters(player_1_bottom_center_x - keypoint_detections[closest_keypoint_1], PLAYER_1_HEIGHT, get_box_height(player_1_box))
+		distance_to_closest_y_meters_1 = convert_pixels_distance_to_meters(player_1_bottom_center_y - keypoint_detections[closest_keypoint_1+1], PLAYER_1_HEIGHT, get_box_height(player_1_box))
+		player_1_bottom_center_minicourt_x = int(closest_minicourt_x_1 + self.convert_meters_to_pixels(distance_to_closest_x_meters_1))
+		player_1_bottom_center_minicourt_y = int(closest_minicourt_y_1 + self.convert_meters_to_pixels(distance_to_closest_y_meters_1))
+		# In orange
+		cv2.circle(frame, (player_1_bottom_center_minicourt_x, player_1_bottom_center_minicourt_y), 5, (0, 165, 255), -1)
+
+		# Player 2
+		player_2_bottom_center_x = int(player_2_bottom_center[0])
+		player_2_bottom_center_y = int(player_2_bottom_center[1])
+		closest_minicourt_x_2 = self.court_drawing_key_points[closest_keypoint_2]
+		closest_minicourt_y_2 = self.court_drawing_key_points[closest_keypoint_2+1]
+		distance_to_closest_x_meters_2 = convert_pixels_distance_to_meters(player_2_bottom_center_x - keypoint_detections[closest_keypoint_2], PLAYER_2_HEIGHT, get_box_height(player_2_box))
+		distance_to_closest_y_meters_2 = convert_pixels_distance_to_meters(player_2_bottom_center_y - keypoint_detections[closest_keypoint_2+1], PLAYER_2_HEIGHT, get_box_height(player_2_box))
+		player_2_bottom_center_minicourt_x = int(closest_minicourt_x_2 + self.convert_meters_to_pixels(distance_to_closest_x_meters_2))
+		player_2_bottom_center_minicourt_y = int(closest_minicourt_y_2 + self.convert_meters_to_pixels(distance_to_closest_y_meters_2))
+		# In orange
+		cv2.circle(frame, (player_2_bottom_center_minicourt_x, player_2_bottom_center_minicourt_y), 5, (0, 165, 255), -1)
+
+		return frame
+
+	def get_closest_keypoint(self, coordinates, keypoint_detection):
+		closest_keypoint = None
+		closest_distance = float('inf')
+		for i in range(0, len(keypoint_detection), 2):
+			keypoint = (keypoint_detection[i], keypoint_detection[i+1])
+			distance = euclidean_distance(coordinates, keypoint)
+			if distance < closest_distance:
+				closest_distance = distance
+				closest_keypoint = i
+		return closest_keypoint
+	
+	def draw_lines_between_points(self, frame, point1, point2):
+		cv2.line(frame, (int(point1[0]), int(point1[1])), (int(point2[0]), int(point2[1])), (0, 255, 0), 2)
+		return frame
+
+	def draw_mini_court(self, frames, ball_detections, player_detections, key_points):
 		output_frames = []
 		for i, frame in enumerate(frames):
 			frame = self.draw_background(frame)
 			frame = self.draw_court(frame)
-			frame = self.draw_ball_in_mini_court(frame, ball_detections[i], key_points[i])
+			if ball_detections[i] is not None:
+				frame = self.draw_ball_in_mini_court(frame, ball_detections[i], key_points[i])
+			if player_detections[i] is not None:
+				frame = self.draw_players_in_mini_court(frame, player_detections[i], key_points[i])
 			output_frames.append(frame)
 		return output_frames
+
+
