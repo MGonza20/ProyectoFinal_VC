@@ -5,6 +5,8 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import pickle
+import pandas as pd
+import numpy as np
 from src.kps_postprocessing import fix_keypoints
 
 class CourtDetector:
@@ -28,10 +30,26 @@ class CourtDetector:
 								return detections
 				for frame in frames:
 						detections.append(self.detect(frame))
+
+				detections = np.array(detections)
+				detections = np.round(detections, 1) 
+				detections = list(detections)
+
+				df_detections = pd.DataFrame(detections)
+				most_repeated_values = []
+				for i in range(df_detections.shape[1]):
+					mode_value = df_detections.iloc[:, i].mode()[0]
+					most_repeated_values.append(mode_value)
+
+				repeated_values_list = []
+				for i in range(df_detections.shape[0]): repeated_values_list.append(most_repeated_values)
+				detections = repeated_values_list
+				
 				if output_path is not None:
 						with open(output_path, 'wb') as f:
 								pickle.dump(detections, f)
-				return detections		 
+
+				return detections 
 					
 
 		def detect(self, frame): 
